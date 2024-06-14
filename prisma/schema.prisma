@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp")]
+}
+
+model CategoryCompany {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String  @db.VarChar(255)
+  description String? @db.VarChar(255)
+  company CategoriesOnCompany[]
+
+  @@map("category_company")
+}
+
+model Company {
+  id      String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name    String    @db.VarChar(255)
+  address String    @db.VarChar(255)
+  image_url String? @default("") @db.VarChar(255)
+  order   Order[]
+  product Product[]
+  category CategoriesOnCompany[]
+
+  @@map("company")
+}
+
+model CategoriesOnCompany {
+  category_company  CategoryCompany @relation(fields: [category_company_id], references: [id])
+  category_company_id     String   @db.Uuid
+  company   Company @relation(fields: [company_id], references: [id])
+  company_id String  @db.Uuid
+
+  @@id([category_company_id, company_id])
+  @@map("categories_on_company")
+}
+
+model Order {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id  String?     @db.Uuid
+  company_id   String?     @db.Uuid
+  total_amount Float    
+  status      String?     @default("pending") @db.VarChar(255)
+  created_at   DateTime?   @default(now()) @db.Timestamp(6)
+  company     Company?    @relation(fields: [company_id], references: [id])
+  user        User?       @relation(fields: [customer_id], references: [id])
+  order_items   OrderItem[]
+
+  @@map("order")
+}
+
+model OrderItem {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  order_id   String?  @db.Uuid
+  product_id String?  @db.Uuid
+  quantity  Int
+  price     Float 
+  order     Order?   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  
+  @@map("order_item")
+}
+
+model Product {
+  id                String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name              String           @db.VarChar(255)
+  description       String?          @db.VarChar(255)
+  price             Float         
+  company_id         String?          @db.Uuid
+  product_category_id String?          @db.Uuid
+  order_items         OrderItem[]
+  company           Company?         @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  product_category   ProductCategory? @relation(fields: [product_category_id], references: [id])
+
+  @@map("product")
+}
+
+model ProductCategory {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String    @db.VarChar(255)
+  description String?   @db.VarChar(255)
+  product     Product[]
+
+  @@map("product_category")
+}
+
+model User {
+  id       String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username String  @db.VarChar(255)
+  email    String  @unique @db.VarChar(255)
+  password String  @db.VarChar(255)
+  orders    Order[]
+
+  @@map("user")
+}
